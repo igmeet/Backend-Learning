@@ -9,7 +9,7 @@
 // // 1. Get request (it is for fetching data from server)
 
 // // get data in ?key=value pair
-// // http://localhost:8080/api/v1/users?name=Bob 
+// http://localhost:8080/api/v1/users?name=Bob
 
 // // home endpoint
 // app.get("/", (req,res)=>{
@@ -137,13 +137,72 @@
 // })
 
 
+import express from "express";
 
-import express from "express"
-import userData from "./data/data.js"
+import userData from "./data/data.js";
 
-const PORT = 8080
-const app = express()
+const PORT = 8080;
 
-app.listen(PORT, ()=>{
-    console.log(`Server is running on PORT ${PORT}`)
-})
+const app = express();
+app.use(express.json());  // inbuilt middleware
+
+// 1. get user by query
+
+app.get("/api/v1/users", (req,res)=>{
+    const {name} = req.query;
+
+    if(name) {
+        const filteredUsers = userData.filter((user)=>
+            user.name.toLowerCase() === name.toLowerCase()
+        );
+        return res.status(200).send(filteredUsers);
+    }
+    return res.status(200).send(userData);
+});
+
+
+// get user by :id
+
+app.get("/api/v1/users/:id", (req,res)=>{
+    const {id} = req.params;
+    const parsedId = parseInt(id);
+
+    if(isNaN(parsedId)) {
+        return res.status(400).send({message : "Invalid Id format. Must be a number"});
+    }
+
+    const user = userData.find((user) => user.id === parsedId);  // something diff. here keep in mind
+
+    if(!user) {
+        return res.status(404).send({message: "User not found"});
+    }
+
+    return res.status(200).send(user);
+});
+
+
+//  POST -- create a new User 
+
+app.post("/api/v1/users", (req,res)=> {
+    const {name, displayname} = req.body;
+
+    if(!name || !displayname) {
+        return res.status(400).send({message : "name and displayname are required"});
+    }
+    const newUser = {
+        id : userData.length > 0 ? userData[userData.length - 1].id + 1 : 1,
+        name,
+        displayname
+    };
+
+    userData.push(newUser);
+
+    return res.status(201).send({
+        message : "User created Succcessfully",
+        data : newUser
+    });
+});
+
+app.listen(PORT, ()=> {
+    console.log(`Server is running on PORT ${PORT}`);
+});
